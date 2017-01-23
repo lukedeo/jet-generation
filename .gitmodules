@@ -1,0 +1,6 @@
+[submodule "src/spdlog"]
+	path = src/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "src/cmd-parser"]
+	path = src/cmd-parser
+	url = https://github.com/lukedeo/cmd-parser
