@@ -94,11 +94,11 @@ CLEANLIST     = *~ *.o *.o~ *.d core
 
 clean:
 	@echo "cleaning up the mess in $(CURDIR)..." 
-	@rm -fr $(CLEANLIST) $(CLEANLIST:%=$(BUILD)/%) $(CLEANLIST:%=$(DEP)/%)
+	@rm -fr $(CLEANLIST) $(CLEANLIST:%=$(BUILD)/%) $(CLEANLIST:%=$(DEP)/%) $(BUILD) 
 
 purge: clean rmdep
 	@echo "removing all created files/folders under $(CURDIR)" 
-	@rm -fr $(BUILD) $(LIB) 
+	@rm -fr $(LIB) 
 
 rmdep:
 	@echo "removing dependencies from $(CURDIR)" 

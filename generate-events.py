@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+file: app.py
+description: main resource gatherer + application serving for the nim-ml-api
+author: Luke de Oliveira (lukedeo@vaitech.io)
+"""
 from multiprocessing import Pool, cpu_count
 from joblib import Parallel, delayed
 from numpy import floor
@@ -128,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('--executable', '-e', action="store",
                         default='bin/jet-image-maker',
                         help='alternative path to the jet-image-maker executable')
-    # parser.add_argument('--verbose', type=float, default=800)
+
     args = parser.parse_args()
 
     calls = generate_calls(args.executable, args.nevents, args.ncpu,

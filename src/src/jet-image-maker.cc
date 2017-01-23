@@ -1,30 +1,8 @@
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <math.h>
-#include <sstream>
-#include <stdio.h>
-#include <stdlib.h>
-#include <vector>
-
-#include "TClonesArray.h"
-#include "TDatabasePDG.h"
-#include "TError.h"
-#include "TParticle.h"
-#include "TString.h"
-#include "TSystem.h"
-
-#include "fastjet/ClusterSequence.hh"
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/Selector.hh"
-
 #include "Pythia8/Pythia.h"
 
 #include "JetImageBuffer.h"
-#include "JetImageProperties.h"
 
 #include "parser.hh"
-
 #include "spdlog/spdlog.h"
 
 int get_seed(int seed) {
@@ -38,16 +16,18 @@ int get_seed(int seed) {
 int main(int argc, const char *argv[]) {
 
     spdlog::set_level(spdlog::level::info);
-    // argument parsing  ------------------------
-    std::cout << "Called as: ";
-
+    std::string call_sig = "Called as: ";
     for (int ii = 0; ii < argc; ++ii) {
-        std::cout << argv[ii] << " ";
+        call_sig += " ";
+        call_sig += argv[ii];
     }
-    std::cout << std::endl;
 
-    // agruments
-    std::string outName = "Mediator.root";
+    std::shared_ptr<spdlog::logger> rlog = spdlog::stdout_color_mt("JetImageMaker");
+
+    rlog->info(call_sig);
+
+    // arguments
+    std::string outName;
     int pileup = 0;
     int nb_events = 0;
     int pixels = 25;
@@ -126,6 +106,8 @@ int main(int argc, const char *argv[]) {
     auto pythia_xml = "../share/Pythia8/xmldoc";
 
     // Configure and initialize pythia
+
+    rlog->debug("initializing pythia option parsing");
     Pythia8::Pythia *pythia8 = new Pythia8::Pythia(pythia_xml, false);
 
     pythia8->readString("Init:showProcesses = off");
@@ -213,8 +195,8 @@ int main(int argc, const char *argv[]) {
     pythia_MB->readString("PhaseSpace:pTHatMax  = 20000");
     pythia_MB->init();
 
+    rlog->debug("finished parsing pythia options");
     JetImageBuffer *analysis = new JetImageBuffer(pixels, fDebug);
-    // analysis->Debug(fDebug);
     analysis->SetOutName(outName);
     analysis->Begin();
     

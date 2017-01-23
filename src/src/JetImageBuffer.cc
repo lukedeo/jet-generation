@@ -1,36 +1,4 @@
-#include <math.h>
-#include <set>
-#include <sstream>
-#include <string>
-#include <vector>
-
-#include "TClonesArray.h"
-#include "TDatabasePDG.h"
-#include "TFile.h"
-#include "TH2F.h"
-#include "TMath.h"
-#include "TParticle.h"
-#include "TTree.h"
-
-#include "FastJetConf.h"
 #include "JetImageBuffer.h"
-#include "JetImageProperties.h"
-
-#include "fastjet/ClusterSequence.hh"
-#include "fastjet/ClusterSequenceActiveAreaExplicitGhosts.hh"
-#include "fastjet/ClusterSequenceArea.hh"
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/Selector.hh"
-#include "fastjet/tools/Filter.hh"
-
-#include "Pythia8/Pythia.h"
-
-#include "Njettiness.hh"
-#include "Nsubjettiness.hh"
-
-using namespace std;
-using namespace fastjet;
-using namespace fastjet::contrib;
 
 struct cout_redirect {
         cout_redirect(std::streambuf *new_buffer): old(std::cout.rdbuf(new_buffer))
@@ -58,9 +26,7 @@ JetImageBuffer::JetImageBuffer(int imagesize, bool debug) {
     m_console->debug("JetImageBuffer::JetImageBuffer - building idealized detector");
 
     ftest = 0;
-    // fDebug = false;
     fOutName = "test.root";
-    tool = new JetImageProperties();
 
     // model the detector as a 2D histogram, with 100 x bins and 200 y bins
     detector = new TH2F("", "", 100, -5, 5, 200, -10, 10);
@@ -76,7 +42,7 @@ JetImageBuffer::JetImageBuffer(int imagesize, bool debug) {
 // Destructor
 JetImageBuffer::~JetImageBuffer() {
     m_console->debug("JetImageBuffer::~JetImageBuffer - calling destructor");
-    delete tool;
+    // delete tool;
     delete[] m_Intensity;
 }
 
@@ -153,7 +119,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         }
 
         // Skip neutrinos, PDGid = 12, 14, 16
-        auto pdgid = fabs(pythia8->event[ip].id());
+        auto pdgid = std::abs(pythia8->event[ip].id());
 
         if (pdgid == 12 || pdgid == 14 || pdgid == 16) {
             continue;
@@ -201,9 +167,9 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
     // reset std::cout to its normal state
     std::cout.clear();
 
-    vector<fastjet::PseudoJet> considered_jets =
+    std::vector<fastjet::PseudoJet> considered_jets =
         fastjet::sorted_by_pt(csLargeR.inclusive_jets(10.0));
-    vector<fastjet::PseudoJet> considered_jets_nopix =
+    std::vector<fastjet::PseudoJet> considered_jets_nopix =
         fastjet::sorted_by_pt(csLargeR_nopix.inclusive_jets(10.0));
     fastjet::PseudoJet leading_jet = trimmer(considered_jets[0]);
     fastjet::PseudoJet leading_jet_nopix = trimmer(considered_jets_nopix[0]);
@@ -219,7 +185,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 
     m_deltaR = 0.;
     if (leading_jet.pieces().size() > 1) {
-        vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
+        std::vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
         TLorentzVector l(subjets[0].px(), subjets[0].py(), subjets[0].pz(),
                          subjets[0].E());
         TLorentzVector sl(subjets[1].px(), subjets[1].py(), subjets[1].pz(),
@@ -229,18 +195,18 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         m_SubLeadingPhi = subjets[1].delta_phi_to(subjets[0]);
     }
 
-    vector<pair<double, double>> consts_image;
-    vector<fastjet::PseudoJet> sorted_consts =
+    std::vector<std::pair<double, double>> consts_image;
+    std::vector<fastjet::PseudoJet> sorted_consts =
         sorted_by_pt(leading_jet.constituents());
 
     for (unsigned int i = 0; i < sorted_consts.size(); i++) {
-        pair<double, double> const_hold;
+        std::pair<double, double> const_hold;
         const_hold.first = sorted_consts[i].eta();
         const_hold.second = sorted_consts[i].phi();
         consts_image.push_back(const_hold);
     }
 
-    vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
+    std::vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
 
     // Step 1: Center on the jet axis.
     for (unsigned int i = 0; i < sorted_consts.size(); i++) {
@@ -356,29 +322,29 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 
     // Step 6: Fill in nsubjettiness (new)
     //----------------------------------------------------------------------------
-    OnePass_WTA_KT_Axes axis_spec;
-    NormalizedMeasure parameters(1.0, 1.0);
+    fastjet::contrib::OnePass_WTA_KT_Axes axis_spec;
+    fastjet::contrib::NormalizedMeasure parameters(1.0, 1.0);
 
     // NormalizedMeasure parameters(1.0, 1.0);
-    Nsubjettiness subjettiness_1(1, axis_spec, parameters);
-    Nsubjettiness subjettiness_2(2, axis_spec, parameters);
-    Nsubjettiness subjettiness_3(3, axis_spec, parameters);
+    fastjet::contrib::Nsubjettiness subjettiness_1(1, axis_spec, parameters);
+    fastjet::contrib::Nsubjettiness subjettiness_2(2, axis_spec, parameters);
+    fastjet::contrib::Nsubjettiness subjettiness_3(3, axis_spec, parameters);
 
     m_Tau1 = (float)subjettiness_1.result(leading_jet);
     m_Tau2 = (float)subjettiness_2.result(leading_jet);
     m_Tau3 = (float)subjettiness_3.result(leading_jet);
 
-    m_Tau32 = (abs(m_Tau2) < 1e-4 ? -10 : m_Tau3 / m_Tau2);
-    m_Tau21 = (abs(m_Tau1) < 1e-4 ? -10 : m_Tau2 / m_Tau1);
+    m_Tau32 = (std::abs(m_Tau2) < 1e-4 ? -10 : m_Tau3 / m_Tau2);
+    m_Tau21 = (std::abs(m_Tau1) < 1e-4 ? -10 : m_Tau2 / m_Tau1);
 
     m_Tau1_nopix = (float)subjettiness_1.result(leading_jet_nopix);
     m_Tau2_nopix = (float)subjettiness_2.result(leading_jet_nopix);
     m_Tau3_nopix = (float)subjettiness_3.result(leading_jet_nopix);
 
     m_Tau32_nopix =
-        (abs(m_Tau2_nopix) < 1e-4 ? -10 : m_Tau3_nopix / m_Tau2_nopix);
+        (std::abs(m_Tau2_nopix) < 1e-4 ? -10 : m_Tau3_nopix / m_Tau2_nopix);
     m_Tau21_nopix =
-        (abs(m_Tau1_nopix) < 1e-4 ? -10 : m_Tau2_nopix / m_Tau1_nopix);
+        (std::abs(m_Tau1_nopix) < 1e-4 ? -10 : m_Tau2_nopix / m_Tau1_nopix);
 
     tT->Fill();
 

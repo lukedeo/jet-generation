@@ -106,12 +106,12 @@ CLEANLIST     = *~ *.o *.o~ *.d core
 
 clean:
 	@echo "cleaning up..."
-	@rm -fr $(CLEANLIST) $(CLEANLIST:%=$(BUILD)/%) $(CLEANLIST:%=$(DEP)/%)
+	@rm -fr $(CLEANLIST) $(CLEANLIST:%=$(BUILD)/%) $(CLEANLIST:%=$(DEP)/%) $(BUILD)
 	@$(MAKE) $@ -C $(NSUBDIR)
 
 purge: clean rmdep
 	@echo "removing all created files and folders"
-	@rm -fr $(BUILD) $(OUTPUT) 
+	@rm -fr $(OUTPUT) 
 	@$(MAKE) $@ -C $(NSUBDIR)
 
 rmdep: 

@@ -1,7 +1,6 @@
 #ifndef JETIMAGEBUFFER_H
 #define JETIMAGEBUFFER_H
 
-#include <math.h>
 #include <string>
 #include <vector>
 
@@ -10,21 +9,18 @@
 #include "fastjet/Selector.hh"
 #include "fastjet/tools/Filter.hh"
 
-#include "TClonesArray.h"
 #include "TFile.h"
 #include "TParticle.h"
 #include "TTree.h"
-
-#include "FastJetConf.h"
-#include "JetImageProperties.h"
-#include "Pythia8/Pythia.h"
-
 #include "TH2F.h"
 
-#include "spdlog/spdlog.h"
+#include "Pythia8/Pythia.h"
 
-using namespace std;
-using namespace fastjet;
+#include "Njettiness.hh"
+#include "Nsubjettiness.hh"
+
+
+#include "spdlog/spdlog.h"
 
 class JetImageBuffer {
   public:
@@ -45,33 +41,32 @@ class JetImageBuffer {
         m_console->set_level(spdlog::level::debug);
     }
 
-    void SetOutName(const string &outname) {
+    void SetOutName(const std::string &outname) {
         fOutName = outname;
     }
 
   private:
     int ftest;
     int fDebug;
-    string fOutName;
+    std::string fOutName;
 
     TFile *tF;
     TTree *tT;
-    JetImageProperties *tool;
 
-    // Tree Vars ---------------------------------------
+    // Tree Vars 
     int evt_number;
     int m_NPV;
 
     void SetupInt(int &val, TString name);
     void SetupFloat(float &val, TString name);
 
-    vector<TString> names;
-    vector<float> pts;
-    vector<float> ms;
-    vector<float> etas;
-    vector<float> nsub21s;
-    vector<float> nsub32s;
-    vector<int> nsubs;
+    std::vector<TString> names;
+    std::vector<float> pts;
+    std::vector<float> ms;
+    std::vector<float> etas;
+    std::vector<float> nsub21s;
+    std::vector<float> nsub32s;
+    std::vector<int> nsubs;
 
     TH2F *detector;
 
@@ -112,7 +107,7 @@ class JetImageBuffer {
     float m_deltaR;
     float *m_Intensity;
 
-    std::shared_ptr<spdlog::logger> m_console = spdlog::stdout_color_mt("jet-image-maker");
+    std::shared_ptr<spdlog::logger> m_console = spdlog::stdout_color_mt("JetImageBuffer");
 };
 
 #endif
