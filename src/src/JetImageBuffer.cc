@@ -33,16 +33,15 @@ using namespace fastjet;
 using namespace fastjet::contrib;
 
 struct cout_redirect {
-    cout_redirect( std::streambuf * new_buffer ) 
-        : old( std::cout.rdbuf( new_buffer ) )
-    { }
+        cout_redirect(std::streambuf *new_buffer): old(std::cout.rdbuf(new_buffer))
+        {}
 
-    ~cout_redirect( ) {
-        std::cout.rdbuf( old );
-    }
+        ~cout_redirect() {
+            std::cout.rdbuf(old);
+        }
 
-private:
-    std::streambuf * old;
+    private:
+        std::streambuf *old;
 };
 
 // Constructor
@@ -55,7 +54,7 @@ JetImageBuffer::JetImageBuffer(int imagesize, bool debug) {
     imagesize *= imagesize;
     MaxN = imagesize;
     m_Intensity = new float[imagesize];
-    
+
     m_console->debug("JetImageBuffer::JetImageBuffer - building idealized detector");
 
     ftest = 0;
@@ -106,7 +105,7 @@ void JetImageBuffer::End() {
 void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
                                   Pythia8::Pythia *pythia_MB, int NPV,
                                   int pixels, float range) {
-    
+
     std::stringstream buf;
     cout_redirect redirect(buf.rdbuf());
 
@@ -119,14 +118,14 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         auto err_str = buf.str();
         err_str.erase(std::remove(err_str.begin(), err_str.end(), '\n'), err_str.end());
         if ((err_str.find("Error") != std::string::npos) || \
-            (err_str.find("error") != std::string::npos)) {
+                (err_str.find("error") != std::string::npos)) {
             m_console->error("JetImageBuffer::AnalyzeEvent - evt#" + \
                              std::to_string(ievt) + ": "  + err_str);
         } else {
             m_console->warn("JetImageBuffer::AnalyzeEvent - evt#" + \
-                             std::to_string(ievt) + ": "  + err_str);
+                            std::to_string(ievt) + ": "  + err_str);
         }
-        
+
     }
 
     if (ievt % 1000 == 0) {
@@ -166,7 +165,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 
         // do bin += value in the associated detector bin
         detector->SetBinContent(ybin, phibin, detector->GetBinContent(ybin, phibin) + jet.e());
-        
+
         fastjet::PseudoJet p_nopix(jet.px(), jet.py(), jet.pz(), jet.e());
         particlesForJets_nopixel.push_back(p_nopix);
     }
@@ -248,8 +247,8 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         consts_image[i].first = consts_image[i].first - subjets[0].eta();
         consts_image[i].second =
             sorted_consts[i].delta_phi_to(subjets[0]); // use delta phi to take
-                                                       // care of the
-                                                       // dis-continuity in phi
+        // care of the
+        // dis-continuity in phi
     }
 
     // Quickly run PCA for the rotation.
@@ -331,10 +330,10 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 
     for (unsigned int i = 0; i < sorted_consts.size(); i++) {
         TLorentzVector hold = TLorentzVector();
-        
-        hold.SetPtEtaPhiM(sorted_consts[i].perp(), consts_image[i].first, 
+
+        hold.SetPtEtaPhiM(sorted_consts[i].perp(), consts_image[i].first,
                           consts_image[i].second, 0.0);
-        
+
         orig_im->Fill(consts_image[i].first, consts_image[i].second, hold.E());
         // std::cout << i << "       " << consts_image[i].first  << " " <<
         // consts_image[i].second << std::endl;
@@ -391,7 +390,7 @@ void JetImageBuffer::DeclareBranches() {
     // Event Properties
     tT->Branch("NFilled", &m_NFilled, "NFilled/I");
 
-    tT->Branch("Intensity", *&m_Intensity, "Intensity[NFilled]/F");
+    tT->Branch("Intensity", * &m_Intensity, "Intensity[NFilled]/F");
 
     tT->Branch("SubLeadingEta", &m_SubLeadingEta, "SubLeadingEta/F");
     tT->Branch("SubLeadingPhi", &m_SubLeadingPhi, "SubLeadingPhi/F");
