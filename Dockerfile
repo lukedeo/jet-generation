@@ -1,5 +1,9 @@
+FROM phusion/baseimage:0.9.19
+MAINTAINER Luke de Oliveira <lukedeo@vaitech.io>
 
-sudo apt-get update && sudo apt-get -y --force-yes install   \
+# USER root
+
+RUN apt-get update && apt-get -y --force-yes install   \
         bc                           \
         curl                         \
         git                          \
@@ -30,8 +34,9 @@ sudo apt-get update && sudo apt-get -y --force-yes install   \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-sudo pip install --upgrade pip
-sudo pip install --no-cache-dir cython scikit-image==0.10.0
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir six 
+RUN pip install --no-cache-dir cython scikit-image==0.10.0
 
 
 # all SW is installed under /opt
@@ -39,46 +44,79 @@ WORKDIR /opt
 
 # unpack ROOT to /opt/troot
 RUN wget -O root.tgz \
-    https://root.cern.ch/download/root_v5.34.36.Linux-ubuntu14-x86_64-gcc4.8.tar.gz && \
+    https://root.cern.ch/download/root_v6.08.00.Linux-ubuntu16-x86_64-gcc5.4.tar.gz && \
     tar -xzf root.tgz 
 
+# set up all ROOT related env vars
+ENV ROOTSYS=/opt/root
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$ROOTSYS/lib
+ENV DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$ROOTSYS/lib
+ENV PYTHONPATH=$PYTHONPATH:$ROOTSYS/lib
+ENV PATH=$PATH:$ROOTSYS/bin
+ENV DISPLAY=""
 
-# ROOT specific python packages
-RUN pip install --no-cache-dir \
-    rootpy \
-    root_numpy
+# install all pip-able requirements
+COPY requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-# Install Pythia8
-RUN wget http://home.thep.lu.se/~torbjorn/pythia8/pythia8219.tgz && \
-    tar -xzf pythia8219.tgz
-RUN cd pythia8219 && \
-    ./configure   && \
-    make          && \
-    make install  && \
-    cd /opt
+# copy our custom rolled scripts
+COPY scripts/install-pythia.sh /tmp/
+COPY scripts/install-fastjet.sh /tmp/
+RUN chmod +x /tmp/install*
 
-# Install FastJet
-RUN wget http://fastjet.fr/repo/fastjet-3.2.1.tar.gz && \
-    tar -xzf fastjet-3.2.1.tar.gz
-RUN cd fastjet-3.2.1 && \
-    ./configure      && \
-    make             && \
-    make install     && \
-    cd /opt
+ENV NUMCORES=2
 
-# Setup all system level
+RUN /tmp/install-pythia.sh $NUMCORES
 
-RUN pip install joblib
+ENV PYTHIA_ROOT=/opt/pythia8219
+ENV C_INCLUDE_PATH=$C_INCLUDE_PATH:$PYTHIA_ROOT/include        
+ENV CPLUS_INCLUDE_PATH=$C_INCLUDE_PATH:$PYTHIA_ROOT/include
+ENV PATH=$PATH:$PYTHIA_ROOT/bin
 
-ADD generation /root/generation
+RUN /tmp/install-fastjet.sh $NUMCORES
 
-WORKDIR /root/generation
-
-RUN make
+RUN mkdir /jet-generation
+COPY . /jet-generation/
 
 
+WORKDIR /jet-generation
 
-# VOLUME /data
+RUN make purge && make
 
-ENTRYPOINT ["python", "generateEvents.py"]
+RUN mkdir /sim
+
+
+# # Install Pythia8
+# RUN wget http://home.thep.lu.se/~torbjorn/pythia8/pythia8219.tgz && \
+#     tar -xzf pythia8219.tgz
+# RUN cd pythia8219 && \
+#     ./configure   && \
+#     make          && \
+#     make install  && \
+#     cd /opt
+
+# # Install FastJet
+# RUN wget http://fastjet.fr/repo/fastjet-3.2.1.tar.gz && \
+#     tar -xzf fastjet-3.2.1.tar.gz
+# RUN cd fastjet-3.2.1 && \
+#     ./configure      && \
+#     make             && \
+#     make install     && \
+#     cd /opt
+
+# # Setup all system level
+
+# RUN pip install joblib
+
+# ADD generation /root/generation
+
+# WORKDIR /root/generation
+
+# RUN make
+
+
+
+# # VOLUME /data
+
+ENTRYPOINT ["python", "generate-events.py"]
 # ENTRYPOINT ["jet-image-maker"]

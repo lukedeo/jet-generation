@@ -1,15 +1,53 @@
-# `jet-simulations`
+# `jet-generation`, based heavily off of [`jet-simulation`](https://github.com/ml-slac/jet-simulations)
+
+
+A framework for building jet images used in  our [arXiv preprint, 1701.05927](https://arxiv.org/abs/1701.05927). You can either build the framework on your computer normally, or you can run the entire thing in a docker container (we recommend the latter unless you have a specific reason, especially if you're just running this on your computer).
+
 
 ## Dependencies
 
-* `numpy`, `matplotlib`, `rootpy`, `PyROOT`, and `scikit-image` for python.
+### Dependencies overview
+
+If you're not running in a docker container, you'll need
+
+
+* The Python requirements outlined in `requirements.txt`
 * `fastjet` version >= 3.1.0
 * `Pythia` version >= 8.1
 * `ROOT`
 
+If you *are* running in a docker container, you'll need 
+
+* Docker (a new version, untested with anything but `v1.13.0`)
+* `docker-py` (ideally, `>=2.0.0`)
+
+Just install `docker-py` with `pip install docker`
+
+
+### Installing dependencies
+
+Because of how annoying this all is, I recommend running inside Docker.
+
+If you're on Windows, I have no clue how to help you -- if you do manage to get this working, **please** submit a PR!
+
+For `FastJet` and `Pythia`, prefer an already-built version if you're on any CERN computing hardware. If you insist on building it yourself on your own computer (and you *have* root access), just run `sudo scripts/install-fastjet.sh && sudo scripts/install-pythia.sh`. 
+
+For `ROOT`, if you have it installed just leave it and use that one. If you don't and you're on a *nix system, type `sudo scripts/install-root.sh` If you're on OSX, make sure Homebrew is installed and type `scripts/install-root-osx.sh`. **DO NOT USE SUDO ON OSX**.
+
+**After all of this, you may need to 
+
+### Building the Docker Image
+
+If you've decided you want to use Docker (which we highly recommend) you can either build the image locally, or just run the script which will download a pre-built image from Docker Hub. If you want to build the image, you can just run `docker build -it myimagename .` in the root directory of this repository.
+
+
+
 ## Building the framework
 
 Typing `make -j` should do the trick on most systems if `fastjet-config`, `pythia8-config`, and `root-config` are all in your `$PATH`. If you're on the SLAC computers, run `./setup.sh` first. This generates the low level event generation script (contained in the `./event-gen` folder), which can be invoked as `./event-gen/event-gen`, if you really need to.
+
+
+
 
 ## Event generation.
 

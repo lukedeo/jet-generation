@@ -1,0 +1,8 @@
+six>=1.6
+matplotlib>1.0.0,<2.0.0
+numpy
+root-numpy==4.7.2
+rootpy==0.9.0
+scikit-image==0.10.0
+scipy
+joblib

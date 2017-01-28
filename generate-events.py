@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-file: app.py
-description: main resource gatherer + application serving for the nim-ml-api
+file: generatee-events.py
+description: build some pythia events
 author: Luke de Oliveira (lukedeo@vaitech.io)
 """
 from multiprocessing import Pool, cpu_count
@@ -133,14 +133,21 @@ if __name__ == '__main__':
     parser.add_argument('--boson-mass', type=float, default=800)
     parser.add_argument('--executable', '-e', action="store",
                         default='bin/jet-image-maker',
-                        help='alternative path to the jet-image-maker executable')
+                        help='alt. path to the jet-image-maker executable')
 
     args = parser.parse_args()
 
-    calls = generate_calls(args.executable, args.nevents, args.ncpu,
-                           args.outfile, args.process, args.pixels, args.range,
-                           args.pileup, args.pt_hat_min, args.pt_hat_max,
-                           args.boson_mass)
+    calls = generate_calls(n_events=args.nevents,
+                           n_cpus=args.ncpu,
+                           executable=args.executable,
+                           outfile=args.out_file,
+                           pixels=args.pixels,
+                           process=args.process,
+                           imrange=args.range,
+                           pileup=args.pileup,
+                           pt_hat_min=args.pt_hat_min,
+                           bosonmass=args.boson_mass,
+                           pt_hat_max=args.pt_hat_max)
 
     _ = Parallel(n_jobs=args.ncpu, verbose=True)(
         delayed(excecute_call)(c) for c in calls
