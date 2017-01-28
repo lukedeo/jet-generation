@@ -32,7 +32,7 @@ If you're on Windows, I have no clue how to help you -- if you do manage to get 
 
 For `FastJet` and `Pythia`, prefer an already-built version if you're on any CERN computing hardware. If you insist on building it yourself on your own computer (and you *have* root access), just run `sudo scripts/install-fastjet.sh && sudo scripts/install-pythia.sh`. 
 
-For `ROOT`, if you have it installed just leave it and use that one. If you don't and you're on a *nix system, type `sudo scripts/install-root.sh` If you're on OSX, make sure Homebrew is installed and type `scripts/install-root-osx.sh`. **DO NOT USE SUDO ON OSX**.
+For `ROOT`, if you have it installed just leave it and use that one. If you don't and you're on a `*`nix system, type `sudo scripts/install-root.sh` If you're on OSX, make sure Homebrew is installed and type `scripts/install-root-osx.sh`. **DO NOT USE SUDO ON OSX**.
 
 **After all of this, you may need to 
 
