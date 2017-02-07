@@ -76,7 +76,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
     cout_redirect redirect(buf.rdbuf());
 
     if (!pythia8->next()) {
-        m_console->warn("JetImageBuffer::AnalyzeEvent - NULL retval from pythia8->next()");
+        m_console->warn("JetImageBuffer::AnalyzeEvent[will continue, skipping] - NULL retval from pythia8->next()");
         return;
     }
     if (!buf.str().empty()) {
@@ -85,10 +85,10 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         err_str.erase(std::remove(err_str.begin(), err_str.end(), '\n'), err_str.end());
         if ((err_str.find("Error") != std::string::npos) || \
                 (err_str.find("error") != std::string::npos)) {
-            m_console->error("JetImageBuffer::AnalyzeEvent - evt#" + \
+            m_console->error("JetImageBuffer::AnalyzeEvent[will continue, skipping] - evt#" + \
                              std::to_string(ievt) + ": "  + err_str);
         } else {
-            m_console->warn("JetImageBuffer::AnalyzeEvent - evt#" + \
+            m_console->warn("JetImageBuffer::AnalyzeEvent[will continue, skipping] - evt#" + \
                             std::to_string(ievt) + ": "  + err_str);
         }
 
