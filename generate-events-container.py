@@ -51,7 +51,7 @@ def _run_in_container(image_name, out_file, nevents, ncpu, process, pixels,
         detach=True
     )
 
-    for line in container.logs(stream=True):
+    for line in container.logs(stream=True, stdout=True, stderr=True, follow=True):
         sys.stdout.write(line)
         sys.stdout.flush()
 
@@ -66,14 +66,14 @@ def _run_in_container(image_name, out_file, nevents, ncpu, process, pixels,
 # 'Can be one of ZprimeTottbar, WprimeToWZ_lept, WprimeToWZ_had, or QCD'
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--image-name', '-c', action="store",
+    parser.add_argument('--image-name', '-i', action="store",
                         default='lukedeo/ji:latest',
                         help='Docker image to use when running the sim')
 
-    parser.add_argument('--out-file', type=str, default='events.root')
-    parser.add_argument('--nevents', type=int, default=1000)
+    parser.add_argument('--out-file', '-o', type=str, default='events.root')
+    parser.add_argument('--nevents', '-n', type=int, default=1000)
     parser.add_argument('--ncpu', type=int, default=-1)
-    parser.add_argument('--process', type=str, default='WprimeToWZ_lept',
+    parser.add_argument('--process', '-p', type=str, default='WprimeToWZ_lept',
                         help='Can be one of ZprimeTottbar, WprimeToWZ_lept, '
                         'WprimeToWZ_had, or QCD', choices=['ZprimeTottbar',
                                                            'WprimeToWZ_lept',
