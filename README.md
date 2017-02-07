@@ -42,11 +42,9 @@ If you've decided you want to use Docker (which we highly recommend) you can eit
 
 
 
-## Building the framework
+## Building the framework (not Docker)
 
-Typing `make -j` should do the trick on most systems if `fastjet-config`, `pythia8-config`, and `root-config` are all in your `$PATH`. If you're on the SLAC computers, run `./setup.sh` first. This generates the low level event generation script (contained in the `./event-gen` folder), which can be invoked as `./event-gen/event-gen`, if you really need to.
-
-
+Typing `make -j` should do the trick on most systems if you've either followed the above instructions or if because of previous installations you have `fastjet-config`, `pythia8-config`, and `root-config` in your `$PATH`. This builds the low level script, and for most use cases, should not be needed to be productive.
 
 
 ## Event generation.
