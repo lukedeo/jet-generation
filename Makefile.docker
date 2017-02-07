@@ -1,25 +1,15 @@
-NAME=lukedeo/ml
-BASENAME=lukedeo/ml-base
-BASEVERSION=0.1
+NAME=lukedeo/ji
 VERSION=1.0
-CORE_VERSION=HEAD
 
-all: base build
-
-base: 
-	docker build -t $(BASENAME):$(BASEVERSION) ml-base/
-	docker push $(BASENAME):$(BASEVERSION)
+all: build
 
 build:
 	docker build -t $(NAME):$(VERSION) .
 
-tag_latest:
+tag:
 	docker tag $(NAME):$(VERSION) $(NAME):latest
 
-test:
-	nosetests -sv
-
-push: tag_latest
+push: tag
 	docker push $(NAME):$(VERSION)
 	docker push $(NAME):latest
 

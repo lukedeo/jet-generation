@@ -17,6 +17,10 @@ DEVNULL = open(os.devnull, 'wb')
 client = docker.from_env()
 
 
+def available_images():
+    return {tag for im in client.images.list() for tag in im.tags}
+
+
 def _run_in_container(image_name, out_file, nevents, ncpu, process, pixels,
                       range, pileup, pt_hat_min, pt_hat_max, boson_mass):
 
@@ -87,6 +91,26 @@ if __name__ == '__main__':
     parser.add_argument('--boson-mass', type=float, default=800)
 
     args = parser.parse_args()
+
+    if args.image_name not in available_images():
+        print 'Image {} not found! Trying Docker hub...'.format(args.image_name)
+        import subprocess
+        _ = os.system('docker pull {}'.format(args.image_name))
+
+        p = subprocess.Popen(
+            args='docker pull {}'.format(args.image_name),
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+
+        # for line in iter(p.stdout.readline, ''):
+        #     print line
+
+        if p.wait():
+            sys.stderr.write(
+                '\n[!] Error in pulling image {}\n'.format(args.image_name))
+            sys.exit(1)
 
     _run_in_container(nevents=args.nevents,
                       ncpu=args.ncpu,

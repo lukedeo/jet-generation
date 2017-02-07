@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''
 file: jetconverter.py
-author: Luke de Oliveira, Aug 2015 
+author: Luke de Oliveira (lukedeoliveira@lbl.gov)
 
 This file takes files (*.root) produced by the event-gen
 portion of the jet-simulations codebase and converts them into 
@@ -17,6 +17,7 @@ import sys
 import logging
 
 import numpy as np
+from h5py import File as HDF5File
 
 from jettools import plot_mean_jet, buffer_to_jet, is_signal
 import array
@@ -48,8 +49,8 @@ if __name__ == '__main__':
                         help='ROOT file *prefix* to dump all this into (writes to TTree `images`). the .root extension will be added.')
 
     parser.add_argument('--save',
-                        default=None,
-                        help='Filename *prefix* to write out the data. (a .npy ext will be added to the end)')
+                        default='jet-images.hdf5',
+                        help='Filename to write out')
     parser.add_argument('--plot',
                         help='File prefix that\
                          will be part of plotting filenames.')
@@ -89,6 +90,7 @@ if __name__ == '__main__':
 
     # -- create buffer for the tree
     class JetImage(TreeModel):
+
         '''
         Buffer for Jet Image
         '''
@@ -235,7 +237,10 @@ if __name__ == '__main__':
 
         df = np.array(entries, dtype=_bufdtype)
         logger.info('saving to file: {}'.format(savefile))
-        np.save(savefile, df)
+
+        with HDF5File(savefile, 'w') as hf:
+            for f in df.dtype.names:
+                hf[f] = df[f]
 
         if plt_prefix != '':
             logger.info('plotting...')
