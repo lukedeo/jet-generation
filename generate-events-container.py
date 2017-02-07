@@ -69,7 +69,8 @@ def _run_in_container(image_name, out_file, nevents, ncpu, process, pixels,
 
 # 'Can be one of ZprimeTottbar, WprimeToWZ_lept, WprimeToWZ_had, or QCD'
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--image-name', '-i', action="store",
                         default='lukedeo/ji:latest',
                         help='Docker image to use when running the sim')
@@ -103,10 +104,6 @@ if __name__ == '__main__':
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
         )
-
-        # for line in iter(p.stdout.readline, ''):
-        #     print line
-
         if p.wait():
             sys.stderr.write(
                 '\n[!] Error in pulling image {}\n'.format(args.image_name))

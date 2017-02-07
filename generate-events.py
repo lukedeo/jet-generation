@@ -114,7 +114,8 @@ def excecute_call(f):
 
 # 'Can be one of ZprimeTottbar, WprimeToWZ_lept, WprimeToWZ_had, or QCD'
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--out-file', type=str, default='events.root')
     parser.add_argument('--nevents', type=int, default=1000)
     parser.add_argument('--ncpu', type=int, default=-1)
