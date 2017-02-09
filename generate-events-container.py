@@ -96,7 +96,6 @@ if __name__ == '__main__':
     if args.image_name not in available_images():
         print 'Image {} not found! Trying Docker hub...'.format(args.image_name)
         import subprocess
-        _ = os.system('docker pull {}'.format(args.image_name))
 
         p = subprocess.Popen(
             args='docker pull {}'.format(args.image_name),
