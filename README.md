@@ -1,7 +1,10 @@
 # `jet-generation`
 
-This is a framework for building jet images used in  our [arXiv preprint, 1701.05927](https://arxiv.org/abs/1701.05927). You can either build the framework on your computer normally, or you can run the entire thing in a Docker container (we recommend the latter unless you have a specific reason, *especially* if you're just running this on your computer).
+This is a framework for building jet images used in [`arXiv:1701.05927`](https://arxiv.org/abs/1701.05927). You can either build the framework on your computer normally, or you can run the entire thing in a Docker container (we recommend the latter unless you have a specific reason, *especially* if you're just running this on your computer).
 
+# Getting Started
+
+Make sure to run `git submodule update --init --recursive` to clone the required submodules as well.
 
 # Running with Docker
 
@@ -61,11 +64,52 @@ After all of this, **you may need to re-`source` your `.bashrc`** or simply log 
 Typing `make -j` should do the trick on most systems if you've either followed the above instructions or if because of previous installations you have `fastjet-config`, `pythia8-config`, and `root-config` in your `$PATH`. This builds the low level script, and for most use cases, should not be needed to be productive.
 
 
-# Event generation.
+# Event generation
 
 Run `./generate-events.py` (if you're running directly on hardware) or `./generate-events-container.py` (if you're running on docker). Pass with a `-h` flag to see what options are available.
 
+`./generate-events-container.py` is simply [collecting command-line arguments](https://github.com/lukedeo/jet-generation/blob/master/generate-events-container.py#L31-L42) to then run `./generate-events.py` via this [command in the Dockerfile](https://github.com/lukedeo/jet-generation/blob/master/Dockerfile#L121).
 
+`./generate-events` is itself a wrapper that generates calls to the binary associated with [`./src/src/jet-image-maker.cc`](https://github.com/lukedeo/jet-generation/blob/master/src/src/jet-image-maker.cc).
+
+The file [`./src/src/jet-image-maker.cc`](https://github.com/lukedeo/jet-generation/blob/master/src/src/jet-image-maker.cc) acts as a Pythia8 option config file.
+
+Running `./generate-events-container.py -h` provides the following information:
+```
+usage: generate-events-container.py [-h] [--image-name IMAGE_NAME]
+                                    [--out-file OUT_FILE] [--nevents NEVENTS]
+                                    [--ncpu NCPU]
+                                    [--process {ZprimeTottbar,WprimeToWZ_lept,WprimeToWZ_had,QCD}]
+                                    [--pixels PIXELS] [--range RANGE]
+                                    [--pileup PILEUP]
+                                    [--pt-hat-min PT_HAT_MIN]
+                                    [--pt-hat-max PT_HAT_MAX]
+                                    [--boson-mass BOSON_MASS]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --image-name IMAGE_NAME, -i IMAGE_NAME
+                        Docker image to use when running the sim (default:
+                        lukedeo/ji:latest)
+  --out-file OUT_FILE, -o OUT_FILE
+  --nevents NEVENTS, -n NEVENTS
+  --ncpu NCPU
+  --process {ZprimeTottbar,WprimeToWZ_lept,WprimeToWZ_had,QCD}, -p {ZprimeTottbar,WprimeToWZ_lept,WprimeToWZ_had,QCD}
+                        Can be one of ZprimeTottbar, WprimeToWZ_lept,
+                        WprimeToWZ_had, or QCD (default: WprimeToWZ_lept)
+  --pixels PIXELS
+  --range RANGE
+  --pileup PILEUP
+  --pt-hat-min PT_HAT_MIN
+  --pt-hat-max PT_HAT_MAX
+  --boson-mass BOSON_MASS
+```
+You can test your setup by running: `./generate-events-container.py -o test.root -n 10 -p QCD`, which is supposed to produce an output file called `test.root` with 10 QCD events. It will contain a single tree called `EventTree`. The branches are defined and filled in [`./src/src/JetImageBuffer.cc`](https://github.com/lukedeo/jet-generation/blob/master/src/src/JetImageBuffer.cc).
+
+Warning: pulling the image might take a while!
+
+#### Notes:
+`pixels` refers to the number of pixels per side in a square image. The number is then squared in the code to get the total image size, saved in branch called `NFilled`.
 
 # Image pre-processing
 
