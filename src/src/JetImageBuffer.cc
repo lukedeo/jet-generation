@@ -19,7 +19,7 @@ JetImageBuffer::JetImageBuffer(int imagesize, bool debug) {
         m_console->set_level(spdlog::level::debug);
     }
 
-    imagesize *= imagesize;
+    imagesize *= imagesize; // total number of pixels = (pixels per side)^2 for square images
     MaxN = imagesize;
     m_Intensity = new float[imagesize];
 
@@ -30,6 +30,7 @@ JetImageBuffer::JetImageBuffer(int imagesize, bool debug) {
 
     // model the detector as a 2D histogram, with 100 x bins and 200 y bins
     detector = new TH2F("", "", 100, -5, 5, 200, -10, 10);
+    // initialize bin contents to 0
     for (unsigned int i = 1; i <= 100; i++) {
         for (unsigned int j = 1; j <= 200; j++) {
             detector->SetBinContent(i, j, 0);
@@ -101,15 +102,18 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
     // reset branches
     ResetBranches();
 
-    // new event-----------------------
+    // new event
     evt_number = ievt;
-    std::vector<fastjet::PseudoJet> particlesForJets;
+    // container for particles with resolution set by detector
+    std::vector<fastjet::PseudoJet> particlesForJets; 
+    // container for particles with true, unpixelated quantities (no calorimeter) 
     std::vector<fastjet::PseudoJet> particlesForJets_nopixel;
 
     detector->Reset();
 
-    // Particle loop
+    // Particle loop (ip = ith particle)
     for (int ip = 0; ip < pythia8->event.size(); ++ip) {
+        // particle object
         fastjet::PseudoJet jet(pythia8->event[ip].px(), pythia8->event[ip].py(),
                                pythia8->event[ip].pz(), pythia8->event[ip].e());
 
@@ -120,24 +124,26 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 
         // Skip neutrinos, PDGid = 12, 14, 16
         auto pdgid = std::abs(pythia8->event[ip].id());
-
         if (pdgid == 12 || pdgid == 14 || pdgid == 16) {
             continue;
         }
 
-        // find the particles rapidity and phi, then get the detector bins
+        // find the particle's rapidity and phi, then get the detector bins
         int ybin = detector->GetXaxis()->FindBin(jet.rapidity());
         int phibin = detector->GetYaxis()->FindBin(jet.phi());
 
+        // deposite particle energy in the right detector cell
         // do bin += value in the associated detector bin
         detector->SetBinContent(ybin, phibin, detector->GetBinContent(ybin, phibin) + jet.e());
 
+        // for unpixelated case, directly add each particle
         fastjet::PseudoJet p_nopix(jet.px(), jet.py(), jet.pz(), jet.e());
         particlesForJets_nopixel.push_back(p_nopix);
     }
     // end particle loop -----------------------------------------------
 
     // Now, we extract the energy from the calorimeter for processing by fastjet
+    // pixelated particles are built by extracting energy from detector cells
     for (int i = 1; i <= detector->GetNbinsX(); i++) {
         for (int j = 1; j <= detector->GetNbinsY(); j++) {
             if (detector->GetBinContent(i, j) > 0) {
@@ -153,52 +159,70 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         }
     }
 
+    // will cluster jets using anti_kt algorithm with radius param = 1.0
     fastjet::JetDefinition *m_jet_def =
         new fastjet::JetDefinition(fastjet::antikt_algorithm, 1.0);
 
+    // will try jets by removing subjets
+    // (defined by kt algorithm with radius param = 0.3)
+    // if they carry < 5% pT of the jet.
+    // (Filter decomposes a jet into subjets defined using JetDefinition,
+    // and then keeps only a subset of these subjets according to a Selector) 
     fastjet::Filter trimmer(fastjet::JetDefinition(fastjet::kt_algorithm, 0.3),
                             fastjet::SelectorPtFractionMin(0.05));
 
     // Silence the FastJet banner
     std::cout.setstate(std::ios::failbit);
+    // pixelated and unpixelated cluster sequences
     fastjet::ClusterSequence csLargeR(particlesForJets, *m_jet_def);
     fastjet::ClusterSequence csLargeR_nopix(particlesForJets_nopixel,
                                             *m_jet_def);
     // reset std::cout to its normal state
     std::cout.clear();
 
+    // inclusive_jets(ptmin) returns a vector of all jets with pt >= ptmin
+    // sorted_by_pt(jets) returns a vector of jets sorted by decreasing kt^2
     std::vector<fastjet::PseudoJet> considered_jets =
         fastjet::sorted_by_pt(csLargeR.inclusive_jets(10.0));
     std::vector<fastjet::PseudoJet> considered_jets_nopix =
         fastjet::sorted_by_pt(csLargeR_nopix.inclusive_jets(10.0));
+    // trimmed leading jet
     fastjet::PseudoJet leading_jet = trimmer(considered_jets[0]);
     fastjet::PseudoJet leading_jet_nopix = trimmer(considered_jets_nopix[0]);
 
+    // pixelated 4v
     m_LeadingEta = leading_jet.eta();
     m_LeadingPhi = leading_jet.phi();
     m_LeadingPt = leading_jet.perp();
     m_LeadingM = leading_jet.m();
+    // unpixelated 4v
     m_LeadingEta_nopix = leading_jet_nopix.eta();
     m_LeadingPhi_nopix = leading_jet_nopix.phi();
     m_LeadingPt_nopix = leading_jet_nopix.perp();
     m_LeadingM_nopix = leading_jet_nopix.m();
 
     m_deltaR = 0.;
-    if (leading_jet.pieces().size() > 1) {
+    if (leading_jet.pieces().size() > 1) { // more than 1 subjet
         std::vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
+        // leading subjet
         TLorentzVector l(subjets[0].px(), subjets[0].py(), subjets[0].pz(),
                          subjets[0].E());
+        // subleading subjet
         TLorentzVector sl(subjets[1].px(), subjets[1].py(), subjets[1].pz(),
                           subjets[1].E());
+        // deltaR between leading and subleading subjet
         m_deltaR = l.DeltaR(sl);
         m_SubLeadingEta = sl.Eta() - l.Eta();
         m_SubLeadingPhi = subjets[1].delta_phi_to(subjets[0]);
     }
 
+    // vector of (eta, phi) pairs for each subjet of leading jet
     std::vector<std::pair<double, double>> consts_image;
+    // subjets of leading jet ordered by pT
     std::vector<fastjet::PseudoJet> sorted_consts =
         sorted_by_pt(leading_jet.constituents());
-
+        
+    // loop through subjets of leading jet
     for (unsigned int i = 0; i < sorted_consts.size(); i++) {
         std::pair<double, double> const_hold;
         const_hold.first = sorted_consts[i].eta();
@@ -206,9 +230,10 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         consts_image.push_back(const_hold);
     }
 
-    std::vector<fastjet::PseudoJet> subjets = leading_jet.pieces();
+    std::vector<fastjet::PseudoJet> subjets = leading_jet.pieces(); // != constituents?
 
     // Step 1: Center on the jet axis.
+    // loop through constituents (subjets?)
     for (unsigned int i = 0; i < sorted_consts.size(); i++) {
         consts_image[i].first = consts_image[i].first - subjets[0].eta();
         consts_image[i].second =
@@ -218,6 +243,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
     }
 
     // Quickly run PCA for the rotation.
+    // see: http://www.math.northwestern.edu/~mlerma/papers/princcomp2d.pdf
     double xbar = 0.;
     double ybar = 0.;
     double x2bar = 0.;
@@ -234,6 +260,7 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
         ybar += y * E;
     }
 
+    // avg eta, phi weighted by E
     double mux = xbar / n;
     double muy = ybar / n;
 
@@ -354,34 +381,39 @@ void JetImageBuffer::AnalyzeEvent(int ievt, Pythia8::Pythia *pythia8,
 // declate branches
 void JetImageBuffer::DeclareBranches() {
     // Event Properties
-    tT->Branch("NFilled", &m_NFilled, "NFilled/I");
+    tT->Branch("NFilled", &m_NFilled, "NFilled/I"); // # of pixels
 
-    tT->Branch("Intensity", * &m_Intensity, "Intensity[NFilled]/F");
+    tT->Branch("Intensity", * &m_Intensity, "Intensity[NFilled]/F"); // pT of each pixel
 
-    tT->Branch("SubLeadingEta", &m_SubLeadingEta, "SubLeadingEta/F");
-    tT->Branch("SubLeadingPhi", &m_SubLeadingPhi, "SubLeadingPhi/F");
+    tT->Branch("SubLeadingEta", &m_SubLeadingEta, "SubLeadingEta/F"); // deltaEta(leading sj, subleading sj)
+    tT->Branch("SubLeadingPhi", &m_SubLeadingPhi, "SubLeadingPhi/F"); // deltaPhi(leading sj, subleading sj)
 
-    tT->Branch("PCEta", &m_PCEta, "PCEta/F");
-    tT->Branch("PCPhi", &m_PCPhi, "PCPhi/F");
+    tT->Branch("PCEta", &m_PCEta, "PCEta/F"); // length of 1st PC along eta
+    tT->Branch("PCPhi", &m_PCPhi, "PCPhi/F"); // length of 1st PC along phi
 
+    // leading jet 4v
     tT->Branch("LeadingEta", &m_LeadingEta, "LeadingEta/F");
     tT->Branch("LeadingPhi", &m_LeadingPhi, "LeadingPhi/F");
     tT->Branch("LeadingPt", &m_LeadingPt, "LeadingPt/F");
     tT->Branch("LeadingM", &m_LeadingM, "LeadingM/F");
 
+    // leading jet 4v (truth, no detector)
     tT->Branch("LeadingEta_nopix", &m_LeadingEta_nopix, "LeadingEta_nopix/F");
     tT->Branch("LeadingPhi_nopix", &m_LeadingPhi_nopix, "LeadingPhi_nopix/F");
     tT->Branch("LeadingPt_nopix", &m_LeadingPt_nopix, "LeadingPt_nopix/F");
     tT->Branch("LeadingM_nopix", &m_LeadingM_nopix, "LeadingM_nopix/F");
 
+    // leading jet taus
     tT->Branch("Tau1", &m_Tau1, "Tau1/F");
     tT->Branch("Tau2", &m_Tau2, "Tau2/F");
     tT->Branch("Tau3", &m_Tau3, "Tau3/F");
 
+    // leading jet taus (truth, unpixelated)
     tT->Branch("Tau1_nopix", &m_Tau1_nopix, "Tau1_nopix/F");
     tT->Branch("Tau2_nopix", &m_Tau2_nopix, "Tau2_nopix/F");
     tT->Branch("Tau3_nopix", &m_Tau3_nopix, "Tau3_nopix/F");
 
+    // deltaR between leading and subleading subjets
     tT->Branch("DeltaR", &m_deltaR, "DeltaR/F");
 
     tT->Branch("Tau32", &m_Tau32, "Tau32/F");
